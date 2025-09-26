@@ -1,0 +1,36 @@
+enum customer_document_type {
+    CPF
+    CNPJ
+}
+
+model customer {
+    id String @id @default(uuid())
+
+    full_name String
+    email     String  @unique
+    document  String?
+    phone     String
+
+    customer_config customer_config?
+    payments        payment[]
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}
+
+model customer_config {
+    id String @id @default(uuid())
+
+    customer_id String   @unique
+    customer    customer @relation(fields: [customer_id], references: [id])
+
+    email_marketing_enabled Boolean @default(false)
+    sms_marketing_enabled   Boolean @default(false)
+    tax_exempt_enabled      Boolean @default(false)
+
+    key   String
+    value String
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}

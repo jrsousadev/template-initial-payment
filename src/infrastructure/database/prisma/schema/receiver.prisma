@@ -1,0 +1,81 @@
+enum receiver_status {
+    ACTIVE
+    PENDING
+    REJECTED
+}
+
+enum receiver_type {
+    BANK_ACCOUNT
+    CRIPTO_WALLET
+}
+
+enum receiver_bank_account_type {
+    CHECKING // Conta Corrente
+    SAVINGS // Conta Poupança
+    PAYMENT // Conta Pagamento
+}
+
+enum receiver_bank_holder_type {
+    INDIVIDUAL // Pessoa Física
+    COMPANY // Pessoa Jurídica
+}
+
+enum receiver_pix_type {
+    CPF
+    CNPJ
+    EMAIL
+    PHONE
+    RANDOM
+}
+
+enum receiver_crypto_network {
+    ETHEREUM
+    BITCOIN
+    POLYGON
+    BSC
+    ARBITRUM
+    OPTIMISM
+    AVALANCHE
+    SOLANA
+    TRON
+}
+
+model receiver {
+    id String @id @default(uuid())
+
+    status receiver_status @default(PENDING)
+    type   receiver_type
+
+    bank_holder_name     String?
+    bank_holder_type     receiver_bank_holder_type?
+    bank_holder_document String?
+
+    bank_code                String?
+    bank_name                String?
+    bank_branch_code         String?
+    bank_branch_check_digit  String?
+    bank_account_number      String?
+    bank_account_check_digit String?
+    bank_account_type        receiver_bank_account_type?
+
+    pix_key  String?
+    pix_type receiver_pix_type?
+
+    wallet_network receiver_crypto_network?
+    wallet_id      String?
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    // dates
+    created_at DateTime     @default(now())
+    updated_at DateTime     @updatedAt
+    deleted_at DateTime?
+    withdrawal withdrawal[]
+
+    // @@index([organization_id])
+    @@index([company_id])
+    @@index([company_id, status])
+    @@index([pix_key])
+    @@index([deleted_at])
+}

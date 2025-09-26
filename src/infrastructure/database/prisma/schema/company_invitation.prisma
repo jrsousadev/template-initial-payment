@@ -1,0 +1,36 @@
+enum invitation_status {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+model company_invitation {
+  id                 String                 @id @default(uuid())
+  company_id         String
+  invited_email      String
+  invited_by_user_id String
+  token              String                 @unique
+  type               link_user_company_type @default(GUEST)
+
+  // Permissões propostas
+  read_payment     Boolean @default(false)
+  write_payment    Boolean @default(false)
+  read_withdrawal  Boolean @default(false)
+  write_withdrawal Boolean @default(false)
+
+  status      invitation_status @default(PENDING)
+  expires_at  DateTime
+  accepted_at DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  company    company @relation(fields: [company_id], references: [id])
+  invited_by user    @relation(fields: [invited_by_user_id], references: [id])
+
+  @@index([company_id])
+  @@index([invited_email])
+  @@index([token])
+  @@index([status])
+}

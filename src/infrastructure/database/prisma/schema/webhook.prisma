@@ -1,0 +1,78 @@
+enum webhook_type {
+    PAYMENT
+    WITHDRAWAL
+    REFUND_IN
+    REFUND_OUT
+    INFRACTION
+    CHARGEBACK
+}
+
+enum webhook_log_status {
+    COMPLETED
+    PENDING
+    RETRYING
+    FAILED
+}
+
+model webhook {
+    id String @id @default(uuid())
+
+    type webhook_type
+
+    url String
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    deleted_at DateTime?
+
+    webhooks_log webhook_log[]
+
+    @@index([company_id])
+}
+
+model webhook_log {
+    id String @id @default(uuid())
+
+    type   webhook_type
+    status webhook_log_status @default(PENDING)
+
+    url String
+
+    payload  Json
+    response Json?
+
+    retry_count Int @default(0)
+    retry_limit Int @default(3)
+    retry_delay Int @default(5000)
+
+    retry_at     DateTime?
+    created_at   DateTime  @default(now())
+    completed_at DateTime?
+    updated_at   DateTime? @updatedAt
+    deleted_at   DateTime?
+
+    webhook_id String
+    webhook    webhook @relation(fields: [webhook_id], references: [id])
+
+    payment_id String?
+    payment    payment? @relation(fields: [payment_id], references: [id])
+
+    infraction_id String?
+    infraction    infraction? @relation(fields: [infraction_id], references: [id])
+
+    withdrawal_id String?
+    withdrawal    withdrawal? @relation(fields: [withdrawal_id], references: [id])
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    @@index([status, retry_at])
+    @@index([payment_id])
+    @@index([withdrawal_id])
+    @@index([created_at])
+    @@index([type])
+    @@index([deleted_at])
+}

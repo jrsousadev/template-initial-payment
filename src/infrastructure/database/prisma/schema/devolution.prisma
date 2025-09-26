@@ -1,0 +1,45 @@
+enum devolution_type {
+    REFUND_IN
+    REFUND_OUT
+    CHARGEBACK
+}
+
+model devolution {
+    id String @id
+
+    type devolution_type @default(REFUND_IN)
+
+    amount              Int @default(0)
+    amount_fee          Int @default(0)
+    amount_organization Int @default(0)
+    amount_provider     Int @default(0)
+
+    tax_rate Float @default(0.0)
+    tax_fee  Int   @default(0)
+
+    tax_rate_provider Float @default(0.0)
+    tax_fee_provider  Int   @default(0)
+
+    payment_id String?  @unique
+    payment    payment? @relation(fields: [payment_id], references: [id])
+
+    withdrawal_id String?     @unique
+    withdrawal    withdrawal? @relation(fields: [withdrawal_id], references: [id])
+
+    // organization_id String
+    // organization    organization @relation(fields: [organization_id], references: [id])
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    created_at  DateTime  @default(now())
+    updated_at  DateTime  @updatedAt
+    refunded_at DateTime?
+    // @@index([organization_id])
+
+    @@index([payment_id])
+    @@index([withdrawal_id])
+    // @@index([withdrawal_id])
+    @@index([company_id])
+    @@index([type, created_at])
+}

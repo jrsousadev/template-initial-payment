@@ -1,0 +1,95 @@
+enum type_user {
+    CPF
+    CNPJ
+}
+
+enum user_status {
+    ACTIVE
+    AWAITING_DOCUMENTS
+    BANNED
+}
+
+model user_document {
+    id String @id @default(uuid())
+
+    document_front_url  String
+    document_back_url   String
+    document_selfie_url String
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    user_id String @unique
+    user    user   @relation(fields: [user_id], references: [id])
+
+    // organization_id String
+    // organization    organization @relation(fields: [organization_id], references: [id])
+    // @@index([organization_id])
+
+    @@index([user_id])
+}
+
+model user {
+    id String @id @default(uuid())
+
+    status user_status @default(AWAITING_DOCUMENTS)
+
+    name     String
+    email    String @unique
+    document String @unique
+    phone    String
+    password String
+
+    two_fa_enabled Boolean @default(false)
+    two_fa_secret  String?
+
+    type_user type_user @default(CPF)
+
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    banned_at  DateTime?
+
+    user_document              user_document?
+    user_password_reset_tokens user_password_reset_token[]
+    links_user_companies       link_user_company[]
+    withdrawals                withdrawal[]
+    company_invitations        company_invitation[]
+    user_refresh_tokens        user_refresh_token[]
+
+    @@index([status])
+    @@index([type_user])
+}
+
+model user_refresh_token {
+    id         String   @id @default(uuid())
+    user_id    String
+    token      String   @unique
+    expires_at DateTime
+    revoked    Boolean  @default(false)
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    user user @relation(fields: [user_id], references: [id])
+
+    @@index([user_id])
+    @@index([token])
+    @@index([expires_at])
+}
+
+model user_password_reset_token {
+    id         String   @id @default(uuid())
+    user_id    String
+    token      String   @unique
+    expires_at DateTime
+    used       Boolean  @default(false)
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    user user @relation(fields: [user_id], references: [id])
+
+    @@index([user_id])
+    @@index([token])
+    @@index([expires_at])
+}

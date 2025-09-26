@@ -1,0 +1,61 @@
+enum infraction_type {
+    MED
+    CHARGEBACK
+}
+
+enum infraction_status {
+    AWAITING_COMPANY_RESPONSE
+    CLOSED
+    CANCELLED
+    UNDER_REVIEW
+    ERROR_SYSTEM
+}
+
+enum infraction_analysis_result {
+    AGREED
+    DISAGREED
+}
+
+model infraction {
+    id String @id @default(uuid())
+
+    provider_infraction_id String  @unique
+    provider_payment_id    String?
+
+    type            infraction_type
+    analysis_result infraction_analysis_result?
+    status          infraction_status           @default(AWAITING_COMPANY_RESPONSE)
+    payment_method  payment_method
+
+    amount          Int
+    reason          String
+    analysis_reason String?
+
+    responsed_at    DateTime?
+    defended_at     DateTime?
+    cancelled_at    DateTime?
+    closed_at       DateTime?
+    error_system_at DateTime?
+
+    provider_id String
+    provider    provider @relation(fields: [provider_id], references: [id])
+
+    payment_id String
+    payment    payment @relation(fields: [payment_id], references: [id])
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    webhook_logs webhook_log[]
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@index([status])
+    @@index([created_at])
+    @@index([payment_id])
+    @@index([provider_infraction_id])
+    @@index([amount, payment_method, company_id, status])
+    @@index([company_id, status, amount])
+    @@index([provider_id, created_at])
+}

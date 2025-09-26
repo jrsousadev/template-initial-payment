@@ -1,0 +1,67 @@
+enum transaction_operation_type {
+    PAYMENT
+    WITHDRAWAL
+    REFUND_IN
+    REFUND_OUT
+    MANUAL
+    SYSTEM
+    SPLIT
+    RESERVE
+    ANTICIPATION
+    CONVERT_CURRENCY
+}
+
+enum transaction_account_type {
+    BALANCE_AVAILABLE
+    BALANCE_PENDING
+    BALANCE_RESERVE
+}
+
+enum transaction_movement_type {
+    DEBIT
+    CREDIT
+}
+
+enum transaction_currency {
+    BRL
+    MXN
+    USD
+}
+
+model transaction {
+    id String @id @default(uuid())
+
+    source_id   String?
+    description String?
+    visible     Boolean @default(true)
+
+    amount     Int
+    amount_fee Int
+    amount_net Int
+
+    idempotency_key String @unique
+
+    currency       transaction_currency       @default(BRL)
+    operation_type transaction_operation_type
+    account_type   transaction_account_type
+    movement_type  transaction_movement_type
+
+    method payment_method
+
+    is_checkpoint Boolean @default(false)
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    // organization_id String
+    // organization    organization @relation(fields: [organization_id], references: [id])
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+    // @@index([organization_id, company_id, account_type])
+
+    @@index([company_id, account_type, created_at])
+    @@index([company_id, operation_type, created_at])
+    @@index([source_id, operation_type])
+    @@index([created_at])
+}

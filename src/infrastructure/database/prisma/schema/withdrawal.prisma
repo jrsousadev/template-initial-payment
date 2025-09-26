@@ -1,0 +1,117 @@
+enum withdrawal_type {
+    CRIPTO_WALLET
+    PIX
+    BANK_ACCOUNT
+}
+
+enum withdrawal_status {
+    PENDING
+    APPROVED
+    FAILED
+    PROCESSING
+    REFUSED
+    REFUNDED
+    ERROR_SYSTEM
+}
+
+model withdrawal {
+    // identificator
+    id                     String  @id
+    provider_withdrawal_id String?
+    end_to_end_id          String?
+    external_id            String?
+
+    // types
+    status           withdrawal_status
+    withdrawal_type  withdrawal_type
+    balance_deducted Boolean           @default(false)
+
+    // Conta Bancária
+    bank_code                String?
+    bank_name                String?
+    bank_branch_code         String?
+    bank_branch_check_digit  String?
+    bank_account_number      String?
+    bank_account_check_digit String?
+    bank_account_type        receiver_bank_account_type?
+
+    // PIX
+    pix_key      String?
+    pix_key_type String?
+
+    // Beneficiário
+    creditor_name     String?
+    creditor_document String?
+
+    // Cripto
+    wallet_network String?
+    wallet_address String?
+
+    // amount
+    total_amount        Int
+    amount              Int
+    amount_fee          Int
+    amount_organization Int
+    amount_provider     Int
+
+    // metadata
+    referer_url   String?
+    ip            String?
+    user_agent    String?
+    provider_name provider_name
+
+    // monitoring
+    error_message            String?
+    error_provider_response  Json?
+    create_provider_response Json?
+
+    // locking and processing
+    processing_attempts        Int       @default(0)
+    last_processing_attempt_at DateTime?
+    processing_worker_id       String?
+
+    // tax
+    tax_rate Float @default(0.0)
+    tax_fee  Int   @default(0)
+
+    tax_rate_provider Float @default(0.0)
+    tax_fee_provider  Int   @default(0)
+
+    // schemas
+    user_id String?
+    user    user?   @relation(fields: [user_id], references: [id])
+
+    api_key_id String?
+    api_key    company_api_keys? @relation(fields: [api_key_id], references: [id])
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    provider_id String
+    provider    provider @relation(fields: [provider_id], references: [id])
+
+    receiver_id String?
+    receiver    receiver? @relation(fields: [receiver_id], references: [id])
+
+    queues       queue[]
+    webhook_logs webhook_log[]
+    devolution   devolution?
+
+    // dates
+    approved_at     DateTime?
+    processing_at   DateTime?
+    refunded_at     DateTime?
+    refused_at      DateTime?
+    failed_at       DateTime?
+    error_system_at DateTime?
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@unique([provider_withdrawal_id, provider_name])
+    @@index([company_id, status, created_at])
+    @@index([user_id, created_at])
+    @@index([provider_id, status])
+    @@index([processing_worker_id, status])
+    @@index([receiver_id])
+}

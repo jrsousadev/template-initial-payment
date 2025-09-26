@@ -1,0 +1,25 @@
+enum link_user_company_type {
+    OWNED
+    GUEST
+}
+
+model link_user_company {
+    id String @id @default(uuid())
+
+    type link_user_company_type @default(OWNED)
+
+    user_id    String
+    company_id String
+    // organization_id String
+
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    banned_at  DateTime?
+
+    user    user    @relation(fields: [user_id], references: [id])
+    company company @relation(fields: [company_id], references: [id])
+
+    @@unique([user_id, company_id])
+    @@index([company_id])
+    @@index([user_id])
+}

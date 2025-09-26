@@ -1,0 +1,55 @@
+enum release_schedule_type {
+    INSTALLMENT
+    RESERVE_RELEASE
+    PENDING_TO_AVAILABLE
+    ANTICIPATION
+}
+
+enum release_schedule_status {
+    SCHEDULED
+    PROCESSING
+    COMPLETED
+    FAILED
+    CANCELLED
+}
+
+model payment_release_schedule {
+    id String @id @default(uuid())
+
+    payment_id String
+    payment    payment @relation(fields: [payment_id], references: [id], onDelete: Cascade)
+    company_id String
+    company    company @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+    type   release_schedule_type
+    status release_schedule_status @default(SCHEDULED)
+
+    amount_gross Int
+    amount_fee   Int
+    amount_net   Int
+
+    installment_number Int?
+    total_installments Int?
+
+    scheduled_date                 DateTime
+    processed_at                   DateTime?
+    anticipated_at                 DateTime?
+    is_anticipation_available_date DateTime?
+
+    is_anticipatable Boolean @default(false)
+
+    // snapshot of the payment status at the time of scheduling
+    currency      transaction_currency
+    method        payment_method
+    provider_name String
+
+    error_message String?
+    retry_count   Int     @default(0)
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@index([scheduled_date, status])
+    @@index([payment_id, type, status])
+    @@index([status, scheduled_date, is_anticipatable])
+}

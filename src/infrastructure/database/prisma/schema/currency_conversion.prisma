@@ -1,0 +1,45 @@
+enum currency_conversion_status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  ERROR
+  REJECTED
+}
+
+model currency_conversion {
+  id String @id @default(uuid())
+
+  status currency_conversion_status @default(PENDING)
+
+  original_amount   Int
+  original_currency transaction_currency
+
+  converted_amount   Int
+  converted_currency transaction_currency
+
+  // amounts
+
+  amount_fee          Int @default(0)
+  amount_provider     Int @default(0)
+  amount_organization Int @default(0)
+
+  // taxas cobradas na conversão
+
+  tax_fee_company  Int   @default(0)
+  tax_rate_company Float @default(0.0)
+
+  tax_rate_provider Float @default(0.0)
+  tax_fee_provider  Int   @default(0)
+
+  // taxas de mercado
+  tax_rate_market Float @default(0.0)
+
+  // dates
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  conversion_at DateTime @default(now())
+
+  // schemas
+  company_id String
+  company    company @relation(fields: [company_id], references: [id])
+}

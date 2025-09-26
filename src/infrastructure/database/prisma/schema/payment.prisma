@@ -1,0 +1,199 @@
+enum payment_status {
+    PENDING
+    APPROVED
+    FAILED
+    REFUNDED
+    CHARGEDBACK
+    EXPIRED
+    REFUSED
+    IN_DISPUTE
+    REFUNDED_PROCESSING
+    ERROR_SYSTEM
+}
+
+enum payment_method {
+    PIX
+    CREDIT_CARD
+    BILLET
+}
+
+enum payment_credit_card_brand {
+    MASTER
+    VISA
+    ELO
+    OTHERS
+}
+
+enum payment_available_status {
+    PARTIAL
+    COMPLETED
+    ERROR
+}
+
+enum payment_reserve_available_status {
+    PARTIAL
+    COMPLETED
+    ERROR
+}
+
+enum payment_type {
+    ONE_TIME
+    RECURRENCE
+}
+
+model payment_item {
+    id String @id @default(uuid())
+
+    name String
+    sku  String?
+
+    unit_amount Int
+    quantity    Int
+
+    payment_id String
+    payment    payment @relation(fields: [payment_id], references: [id])
+
+    @@index([payment_id])
+}
+
+model payment {
+    // identificator
+    id                  String  @id
+    external_id         String?
+    provider_payment_id String
+    end_to_end_id       String? @unique
+
+    // currency
+    currency transaction_currency @default(BRL)
+    type     payment_type         @default(ONE_TIME)
+
+    // description, product, etc
+    description String?
+
+    // amounts
+    amount              Int
+    amount_fee          Int
+    amount_net          Int
+    amount_organization Int
+    amount_provider     Int
+    amount_reserve      Int
+
+    // snapshot - customer data
+    customer_name          String
+    customer_email         String
+    customer_phone         String
+    customer_document      String?
+    customer_document_type customer_document_type?
+
+    // snapshot - address data
+    address_zipcode    String?
+    address_city       String?
+    address_state      String?
+    address_complement String?
+    address_street     String?
+    address_district   String?
+    address_number     String?
+    address_country    String?
+
+    // snapshot - items data
+    items_json Json?
+
+    // pix 
+    pix_code String?
+
+    // billet 
+    billet_url     String?
+    billet_barcode String?
+
+    // credit card
+    brand_credit_card            payment_credit_card_brand?
+    last_four_digits_credit_card String?
+    bin_credit_card              String?
+    auth_code_credit_card        String?
+
+    // monitoring
+    ips                   String[] @default([]) @db.VarChar(255)
+    refunded_provider_log Json?    @db.Json
+    create_provider_log   Json?    @db.Json
+    approve_provider_log  Json?    @db.Json
+    error_message         String?  @db.VarChar(255)
+
+    // tax
+    tax_rate_company Float @default(0.0)
+    tax_fee_company  Int   @default(0)
+
+    tax_rate_reserve_company Float @default(0.0)
+    tax_fee_reserve_company  Int   @default(0)
+
+    tax_rate_anticipation Float @default(0.0)
+    tax_fee_anticipation  Int   @default(0)
+
+    // tax intermediaries
+    tax_rate_provider Float @default(0.0)
+    tax_fee_provider  Int   @default(0)
+
+    // metadata
+    referer_url  String?
+    checkout_url String?
+
+    provider_name provider_name
+
+    // config
+    status payment_status @default(PENDING)
+    method payment_method
+
+    available_status         payment_available_status @default(PARTIAL)
+    completed_available_date DateTime?
+
+    available_reserve_status         payment_reserve_available_status @default(PARTIAL)
+    completed_reserve_available_date DateTime?
+
+    // control amount installments
+    installments                   Int?      @default(0)
+    installments_qty_received      Int?      @default(0)
+    installments_amount_received   Int?      @default(0)
+    installments_amount_pending    Int?      @default(0)
+    amount_per_installments        Float?    @default(0)
+
+    // schemas
+    company_id         String
+    company            company          @relation(fields: [company_id], references: [id])
+    company_api_key_id String
+    companyApiKey      company_api_keys @relation(fields: [company_api_key_id], references: [id])
+    provider_id        String
+    provider           provider         @relation(fields: [provider_id], references: [id])
+    customer_id        String
+    customer           customer         @relation(fields: [customer_id], references: [id])
+
+    queues queue[]
+
+    // dates
+    approved_at               DateTime?
+    refunded_at               DateTime?
+    refused_at                DateTime?
+    chargedback_at            DateTime?
+    refunded_processing_at    DateTime?
+    disputed_at               DateTime?
+    expired_at                DateTime?
+    failed_at                 DateTime?
+    error_system_at           DateTime?
+    available_anticipation_at DateTime?
+    anticipated_at            DateTime?
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    webhooks_log               webhook_log[]
+    infractions                infraction[]
+    devolution                 devolution?
+    payment_items              payment_item[]
+    payment_releases_schedules payment_release_schedule[]
+
+    @@unique([provider_payment_id, provider_name], name: "payment_provider_payment_id_provider_name_unique")
+    @@index([end_to_end_id])
+    @@index([company_id, status, created_at])
+    @@index([customer_id, created_at])
+    @@index([provider_id, status])
+    @@index([status, method])
+    @@index([external_id])
+}

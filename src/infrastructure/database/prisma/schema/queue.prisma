@@ -1,0 +1,57 @@
+enum queue_type {
+    PAYMENT
+    WITHDRAWAL
+    CALL_PROVIDER_WITHDRAWAL
+    INFRACTION
+    SCHEDULED
+    ANTICIPATION
+}
+
+enum queue_status {
+    PENDING
+    COMPLETED
+    IN_PROGRESS
+    FAILED
+}
+
+model queue {
+    id String @id
+
+    status queue_status @default(PENDING)
+    type   queue_type
+
+    description String?
+
+    payload Json
+
+    locked_by String?
+    locked_at DateTime?
+
+    error   String?
+    attempt Int     @default(0)
+
+    time      Int @default(0)
+    time_exec Int @default(0)
+
+    company_id String?
+    company    company? @relation(fields: [company_id], references: [id])
+
+    payment_id String?
+    payment    payment? @relation(fields: [payment_id], references: [id])
+
+    withdrawal_id String?
+    withdrawal    withdrawal? @relation(fields: [withdrawal_id], references: [id])
+
+    anticipation_id String?
+    anticipation    anticipation? @relation(fields: [anticipation_id], references: [id])
+
+    ip String?
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    @@index([status, type, created_at])
+    @@index([locked_by, status])
+    @@index([company_id, type])
+    @@index([withdrawal_id])
+}

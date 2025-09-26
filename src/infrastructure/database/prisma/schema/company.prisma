@@ -1,0 +1,246 @@
+enum type_company {
+    LTDA
+    EIRELI
+    ASSOCIATION
+    INDIVIDUALENTRERPRENEUR
+    MEI
+    SA
+    SLU
+}
+
+enum company_status {
+    ACTIVE
+    AWAITING_DOCUMENTS
+    REJECTED
+    BANNED
+}
+
+model company {
+    id String @id @default(uuid())
+
+    status company_status @default(AWAITING_DOCUMENTS)
+
+    balance_blocked Int @default(0)
+
+    signature_key_webhook String @unique @default(uuid())
+
+    // company
+    name     String
+    email    String
+    document String
+
+    // company data
+    address_street        String @default("")
+    address_street_number String @default("")
+    address_cep           String @default("")
+    address_city          String @default("")
+    address_state         String @default("")
+    address_neighborhood  String @default("")
+
+    soft_descriptor String @default("")
+
+    created_at DateTime  @default(now())
+    updated_at DateTime  @updatedAt
+    banned_at  DateTime?
+
+    provider_cashin_pix_id         String?
+    provider_cashin_pix            provider? @relation(name: "provider_cashin_pix", fields: [provider_cashin_pix_id], references: [id])
+    provider_cashin_credit_card_id String?
+    provider_cashin_credit_card    provider? @relation(name: "provider_cashin_credit_card", fields: [provider_cashin_credit_card_id], references: [id])
+    provider_cashin_billet_id      String?
+    provider_cashin_billet         provider? @relation(name: "provider_cashin_billet", fields: [provider_cashin_billet_id], references: [id])
+    provider_cashout_id            String?
+    provider_cashout               provider? @relation(name: "provider_cashout_company", fields: [provider_cashout_id], references: [id])
+
+    company_document company_document?
+    company_config   company_config?
+
+    company_tax_configs        company_tax_config[]
+    transactions               transaction[]
+    wallets                    wallet[]
+    payments                   payment[]
+    company_api_keys           company_api_keys[]
+    links_user_companies       link_user_company[]
+    provider_sub_accounts      provider_sub_account[]
+    queues                     queue[]
+    webhooks_log               webhook_log[]
+    webhooks                   webhook[]
+    devolutions                devolution[]
+    receivers                  receiver[]
+    withdrawals                withdrawal[]
+    infractions                infraction[]
+    payment_releases_schedules payment_release_schedule[]
+    currency_conversions       currency_conversion[]
+    anticipations              anticipation[]
+    company_invitations        company_invitation[]
+}
+
+model company_api_keys {
+    id String @id @default(uuid())
+
+    description String @db.VarChar(255)
+
+    secret String @unique @default(uuid())
+    public String @unique @default(uuid())
+
+    write_payment    Boolean @default(false)
+    write_withdrawal Boolean @default(false)
+    write_infraction Boolean @default(false)
+    read_payment     Boolean @default(false)
+    read_withdrawal  Boolean @default(false)
+    read_infraction  Boolean @default(false)
+    read_balance     Boolean @default(false)
+    refund_payment   Boolean @default(false)
+
+    created_at   DateTime  @default(now())
+    updated_at   DateTime  @updatedAt
+    last_used_at DateTime?
+    deleted_at   DateTime?
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    payments    payment[]
+    withdrawals withdrawal[]
+
+    @@unique([secret, public])
+    @@index([company_id])
+    @@index([deleted_at])
+    @@index([last_used_at])
+}
+
+model company_document {
+    id String @id @default(uuid())
+
+    contract_social_url String
+    card_cnpj_url       String
+
+    document_front_responsible_url  String
+    document_back_responsible_url   String
+    document_selfie_responsible_url String
+
+    mother_name_responsible String
+    phone_responsible       String
+    document_responsible    String
+    name_responsible        String
+
+    cnae_company         String
+    phone_company        String
+    website_company      String
+    created_company_date DateTime
+
+    average_ticket  Int @default(0)
+    monthly_revenue Int @default(0)
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    company_id String  @unique
+    company    company @relation(fields: [company_id], references: [id])
+
+    @@index([company_id])
+}
+
+model company_config {
+    id String @id @default(uuid())
+
+    automatic_anticipation_enabled Boolean @default(false)
+    automatic_withdrawal_enabled   Boolean @default(false)
+
+    withdrawal_enabled Boolean @default(false)
+    payment_enabled    Boolean @default(false)
+
+    payment_link_enabled        Boolean @default(false)
+    payment_credit_card_enabled Boolean @default(false)
+    payment_pix_enabled         Boolean @default(false)
+    payment_billet_enabled      Boolean @default(false)
+
+    company_id String  @unique
+    company    company @relation(fields: [company_id], references: [id])
+
+    @@index([company_id])
+}
+
+model company_tax_config {
+    id String @id @default(uuid())
+
+    currency transaction_currency @default(BRL)
+
+    // taxas cash-in
+    tax_rate_pix    Float @default(0.0)
+    tax_rate_billet Float @default(0.0)
+
+    tax_fee_pix         Int @default(0)
+    tax_fee_credit_card Int @default(0)
+    tax_fee_billet      Int @default(0)
+
+    // reembolso
+    tax_rate_refund_pix         Float @default(0.0)
+    tax_rate_refund_credit_card Float @default(0.0)
+    tax_rate_refund_billet      Float @default(0.0)
+    tax_fee_refund_pix          Int   @default(0)
+    tax_fee_refund_credit_card  Int   @default(0)
+    tax_fee_refund_billet       Int   @default(0)
+
+    // med
+    tax_rate_dispute_pix Float @default(0.0)
+    tax_fee_dispute_pix  Int   @default(0)
+
+    // chargeback
+    tax_rate_chargeback_credit_card Float @default(0.0)
+    tax_fee_chargeback_credit_card  Int   @default(0)
+
+    tax_rate_dispute_credit_card Float @default(0.0)
+    tax_fee_dispute_credit_card  Int   @default(0)
+
+    tax_rate_pre_chargeback_credit_card Float @default(0.0)
+    tax_fee_pre_chargeback_credit_card  Int   @default(0)
+
+    // antecipação
+    tax_rate_anticipation Float @default(0.0)
+    tax_fee_anticipation  Int   @default(0)
+
+    // reserva
+    tax_rate_reserve_credit_card Float @default(0.0)
+    tax_rate_reserve_billet      Float @default(0.0)
+    tax_rate_reserve_pix         Float @default(0.0)
+
+    tax_fee_reserve_credit_card Int @default(0)
+    tax_fee_reserve_billet      Int @default(0)
+    tax_fee_reserve_pix         Int @default(0)
+
+    // parcelas
+    tax_rate_installments_credit_card Float[] @default([3.56, 4.13, 4.13, 4.13, 4.13, 4.13, 4.46, 4.46, 4.46, 4.46, 4.46, 4.46])
+
+    // available days
+    available_days_pix          Int @default(0)
+    available_days_billet       Int @default(0)
+    available_days_anticipation Int @default(0)
+
+    available_days_reserve_pix         Int @default(0)
+    available_days_reserve_credit_card Int @default(0)
+    available_days_reserve_billet      Int @default(0)
+
+    // config min/max sales
+    min_amount_sale_pix         Int @default(0)
+    min_amount_sale_credit_card Int @default(0)
+    min_amount_sale_billet      Int @default(0)
+
+    max_amount_sale_pix         Int @default(0)
+    max_amount_sale_credit_card Int @default(0)
+    max_amount_sale_billet      Int @default(0)
+
+    // config withdrawal
+    max_withdrawal Int @default(0)
+    min_withdrawal Int @default(0)
+
+    // tax withdrawal
+    tax_rate_withdrawal Float @default(0.0)
+    tax_fee_withdrawal  Int   @default(0)
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    @@unique([company_id, currency])
+    @@index([company_id])
+}

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  app:
+    image: shop-fox-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production

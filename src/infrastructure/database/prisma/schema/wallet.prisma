@@ -1,0 +1,23 @@
+model wallet {
+    id String @id @default(uuid())
+
+    company_id    String
+    last_entry_id String?
+
+    account_type transaction_account_type
+    currency     transaction_currency     @default(BRL)
+
+    balance Int @default(0)
+
+    last_updated DateTime @default(now())
+    version      Int      @default(1)
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    company company @relation(fields: [company_id], references: [id])
+
+    @@unique([company_id, account_type, currency])
+    @@index([company_id, balance])
+    @@index([last_updated])
+}

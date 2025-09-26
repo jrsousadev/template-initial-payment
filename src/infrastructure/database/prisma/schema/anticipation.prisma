@@ -1,0 +1,47 @@
+enum status_anticipation {
+  PENDING
+  PROCESSING
+  APPROVED
+  REJECTED
+  ERROR
+}
+
+enum type_anticipation {
+  INSTALLMENT
+  PENDING_TO_AVAILABLE
+}
+
+model anticipation {
+  id String @id @default(uuid())
+
+  status   status_anticipation  @default(PENDING)
+  currency transaction_currency
+  type     type_anticipation
+
+  group_payments_id String
+  payments_ids      String[]
+
+  total_amount        Int
+  amount_net          Int
+  amount_organization Int
+  amount_fee          Int
+
+  tax Float @default(0.0)
+  fee Int   @default(0)
+
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  rejected_at  DateTime?
+  approved_at  DateTime?
+  failed_at    DateTime?
+  processed_at DateTime?
+
+  company_id String
+  company    company @relation(fields: [company_id], references: [id])
+
+  queue queue[]
+
+  @@index([group_payments_id])
+  @@index([status, company_id])
+  @@index([company_id])
+}

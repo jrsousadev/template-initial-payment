@@ -1,0 +1,52 @@
+# Arquivos e diretórios do Git
+.git
+.github
+.gitignore
+
+# Dependências
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Arquivos de ambiente e configuração
+!.env.example
+.editorconfig
+.eslintrc
+.prettierrc
+.vscode
+.idea
+
+# Arquivos de build
+dist
+build
+coverage
+.nyc_output
+
+# Arquivos temporários
+tmp
+temp
+*.tmp
+*.temp
+*.log
+
+# Arquivos de teste
+test
+**/*.spec.ts
+**/*.test.ts
+jest.config.js
+
+# Documentação
+docs
+README.md
+CHANGELOG.md
+LICENSE
+*.md
+
+# Outros
+Dockerfile
+docker-compose.yml
+.dockerignore
+.DS_Store
+**/.DS_Store

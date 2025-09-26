@@ -1,0 +1,156 @@
+enum provider_name {
+    AXIS_BANKING
+}
+
+enum provider_model {
+    BAG
+    SUB_ACCOUNT
+}
+
+enum provider_environment {
+    SANDBOX
+    PRODUCTION
+}
+
+enum provider_mode {
+    CASHIN
+    CASHOUT
+    CASHIN_CASHOUT
+}
+
+enum provider_type {
+    CRIPTO
+    FIAT
+    FIAT_CRIPTO
+}
+
+model provider_sub_account {
+    id String @id @default(uuid())
+
+    receiver_id String?
+    public_key  String?
+    secret_key  String?
+    account_id  String?
+
+    provider_id String
+    provider    provider @relation(fields: [provider_id], references: [id])
+
+    company_id String
+    company    company @relation(fields: [company_id], references: [id])
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}
+
+model provider_tax_config {
+    id String @id @default(uuid())
+
+    // cash-in
+
+    tax_rate_pix Float @default(0.0)
+    tax_fee_pix  Int   @default(0)
+
+    tax_rate_billet Float @default(0.0)
+    tax_fee_billet  Int   @default(0)
+
+    tax_fee_credit_card Int @default(0)
+
+    // med pix
+
+    tax_rate_dispute_pix Float @default(0.0)
+    tax_fee_dispute_pix  Int   @default(0)
+
+    // refunds
+
+    tax_rate_refund_pix Float @default(0.0)
+    tax_fee_refund_pix  Int   @default(0)
+
+    tax_rate_refund_billet Float @default(0.0)
+    tax_fee_refund_billet  Int   @default(0)
+
+    tax_rate_refund_credit_card Float @default(0.0)
+    tax_fee_refund_credit_card  Int   @default(0)
+
+    // chargeback
+
+    tax_rate_chargeback_credit_card Float @default(0.0)
+    tax_fee_chargeback_credit_card  Int   @default(0)
+
+    tax_rate_dispute_credit_card Float @default(0.0)
+    tax_fee_dispute_credit_card  Int   @default(0)
+
+    tax_rate_pre_chargeback_credit_card Float @default(0.0)
+    tax_fee_pre_chargeback_credit_card  Int   @default(0)
+
+    // withdrawal
+
+    tax_rate_withdrawal Float @default(0.0)
+    tax_fee_withdrawal  Int   @default(0)
+
+    // cc installments
+
+    tax_rate_installments_credit_card Float[] @default([3.56, 4.13, 4.13, 4.13, 4.13, 4.13, 4.46, 4.46, 4.46, 4.46, 4.46, 4.46])
+
+    provider_id String   @unique
+    provider    provider @relation(fields: [provider_id], references: [id])
+
+    @@index([provider_id], name: "idx_provider_tax_config_provider_id")
+}
+
+model provider {
+    id String @id @default(uuid())
+
+    name        provider_name
+    model       provider_model
+    environment provider_environment
+    mode        provider_mode
+    type        provider_type
+
+    pix_enabled         Boolean @default(false)
+    billet_enabled      Boolean @default(false)
+    credit_card_enabled Boolean @default(false)
+
+    description String?
+    config      Json?
+
+    secret_key_cashin String?
+    public_key_cashin String?
+
+    secret_key_cashout String?
+    public_key_cashout String?
+
+    receiver_id String?
+    base_url    String?
+
+    pix_key String?
+
+    cert_crt_cashin String?
+    cert_key_cashin String?
+
+    cert_crt_cashout String?
+    cert_key_cashout String?
+
+    is_active Boolean @default(true)
+
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
+    // organization_id String
+    // organization    organization @relation(fields: [organization_id], references: [id])
+
+    provider_tax_config provider_tax_config?
+
+    cashin_company_pix         company[] @relation(name: "provider_cashin_pix")
+    cashin_company_credit_card company[] @relation(name: "provider_cashin_credit_card")
+    cashin_company_billet      company[] @relation(name: "provider_cashin_billet")
+    cashout_company            company[] @relation(name: "provider_cashout_company")
+
+    payments              payment[]
+    provider_sub_accounts provider_sub_account[]
+    withdrawals           withdrawal[]
+    infractions           infraction[]
+
+    @@index([id], name: "idx_provider_id")
+    @@index([is_active])
+    @@index([environment])
+}

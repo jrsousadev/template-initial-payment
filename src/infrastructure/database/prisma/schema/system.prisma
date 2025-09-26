@@ -1,0 +1,12 @@
+model system {
+    id String @id @default(uuid())
+
+    all_cashins_active  Boolean @default(true)
+    all_cashouts_active Boolean @default(true)
+    all_refunds_active  Boolean @default(true)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("system")
+}
