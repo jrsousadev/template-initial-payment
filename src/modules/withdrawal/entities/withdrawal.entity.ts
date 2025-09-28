@@ -1,8 +1,8 @@
 import {
+  $Enums,
   withdrawal as PrismaWithdrawal,
   provider_name,
   receiver,
-  $Enums,
 } from '@prisma/client';
 import { IWithdrawalResponse } from '../interfaces/withdrawal.interfaces';
 
@@ -139,9 +139,9 @@ export class Withdrawal implements PrismaWithdrawal {
       receiver: {
         id: this.receiver_id,
         type: this.withdrawal_type,
-        pix_key: this.receiver.pix_key,
-        bank_account: this.receiver.bank_account_number,
-        wallet_address: this.receiver.wallet_id,
+        pix_key: this.receiver ? this.receiver.pix_key : null,
+        bank_account: this.receiver ? this.receiver.bank_account_number : null,
+        wallet_address: this.receiver ? this.receiver.wallet_id : null,
       },
       dates: {
         approved_at: this.approved_at,
