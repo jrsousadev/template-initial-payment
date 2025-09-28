@@ -34,6 +34,7 @@ model payment_release_schedule {
     scheduled_date                 DateTime
     processed_at                   DateTime?
     anticipated_at                 DateTime?
+    cancelled_at                   DateTime?
     is_anticipation_available_date DateTime?
 
     is_anticipatable Boolean @default(false)

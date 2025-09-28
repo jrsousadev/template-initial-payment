@@ -1,13 +1,13 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpException,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { FastifyReply } from 'fastify';
 import { Prisma } from '@prisma/client';
+import { FastifyReply } from 'fastify';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -22,8 +22,39 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let message = 'Internal server error';
     let details: any = undefined;
 
+    // ✅ NOVA VERIFICAÇÃO: Tratar TypeError específico do class-transformer
+    if (exception instanceof TypeError) {
+      const errorMessage = exception.message;
+
+      // Verificar se é o erro específico do class-transformer/throwError
+      if (errorMessage.includes('Cannot read properties of undefined')) {
+        status = HttpStatus.BAD_REQUEST;
+        message = 'Invalid request data format';
+
+        // Log detalhado para debug
+        this.logger.error(
+          `Class-transformer/RxJS error: ${errorMessage}`,
+          exception.stack,
+        );
+
+        // Em desenvolvimento, adicionar mais detalhes
+        if (this.isDevelopment) {
+          details = {
+            type: 'SerializationError',
+            originalError: errorMessage,
+            hint: 'Check if response objects have undefined properties or invalid @Transform decorators',
+          };
+        }
+      } else {
+        // Outros TypeErrors
+        message = this.isDevelopment
+          ? exception.message
+          : 'Type validation error';
+        this.logger.error(`TypeError: ${exception.message}`, exception.stack);
+      }
+    }
     // Tratamento de exceções do Prisma
-    if (this.isPrismaError(exception)) {
+    else if (this.isPrismaError(exception)) {
       const prismaError = this.handlePrismaError(
         exception as Prisma.PrismaClientKnownRequestError,
       );
@@ -49,6 +80,34 @@ export class HttpExceptionFilter implements ExceptionFilter {
         }
       }
     }
+    // ✅ NOVA VERIFICAÇÃO: Tratar erros do RxJS/Observable
+    else if (
+      exception &&
+      typeof exception === 'object' &&
+      'name' in exception
+    ) {
+      const err = exception as any;
+
+      // Verificar se é um erro do RxJS
+      if (
+        err.name === 'ObjectUnsubscribedError' ||
+        err.name === 'EmptyError' ||
+        err.name === 'TimeoutError'
+      ) {
+        status = HttpStatus.SERVICE_UNAVAILABLE;
+        message = 'Service temporarily unavailable';
+
+        this.logger.error(`RxJS Error: ${err.name}`, err.stack);
+
+        if (this.isDevelopment) {
+          details = {
+            type: 'ObservableError',
+            name: err.name,
+            originalMessage: err.message,
+          };
+        }
+      }
+    }
     // Tratamento de erros genéricos
     else if (exception instanceof Error) {
       // Não expor mensagens de erro internas em produção
@@ -60,16 +119,30 @@ export class HttpExceptionFilter implements ExceptionFilter {
         exception.stack,
       );
     }
+    // ✅ NOVA VERIFICAÇÃO: Tratamento para objetos undefined/null
+    else if (exception === undefined || exception === null) {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'An unexpected error occurred';
+
+      this.logger.error('Received undefined or null exception');
+
+      if (this.isDevelopment) {
+        details = {
+          type: 'UndefinedException',
+          value: exception,
+        };
+      }
+    }
 
     // Log detalhado para debugging (apenas no servidor)
     this.logError(exception, status, message);
 
-    // Resposta sanitizada para o cliente
+    // ✅ GARANTIR que a resposta sempre tem uma estrutura válida
     const errorResponse: any = {
       statusCode: status,
       message: message,
       timestamp: new Date().toISOString(),
-      path: ctx.getRequest().url,
+      path: ctx.getRequest()?.url || 'unknown',
     };
 
     // Adicionar detalhes apenas em desenvolvimento
@@ -77,7 +150,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       errorResponse.details = details;
     }
 
-    response.code(status).send(errorResponse);
+    // ✅ Garantir que o response está disponível antes de enviar
+    if (
+      response &&
+      typeof response.code === 'function' &&
+      typeof response.send === 'function'
+    ) {
+      response.code(status).send(errorResponse);
+    } else {
+      // Fallback se o response não estiver disponível
+      this.logger.error('Response object not available', { errorResponse });
+    }
   }
 
   private isPrismaError(exception: unknown): boolean {
@@ -305,12 +388,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 
   private logError(exception: unknown, status: number, message: string): void {
-    const errorDetails = {
+    const errorDetails: any = {
       status,
       message,
       timestamp: new Date().toISOString(),
     };
 
+    // ✅ Tratamento mais robusto para diferentes tipos de exceção
     if (exception instanceof Error) {
       errorDetails['error'] = exception.name;
       errorDetails['stack'] = exception.stack;
@@ -319,6 +403,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
         errorDetails['prismaCode'] = (exception as any).code;
         errorDetails['prismaMeta'] = (exception as any).meta;
       }
+    } else if (exception && typeof exception === 'object') {
+      errorDetails['type'] = 'object';
+      errorDetails['keys'] = Object.keys(exception);
+      errorDetails['constructor'] = exception.constructor?.name;
+    } else {
+      errorDetails['type'] = typeof exception;
+      errorDetails['value'] = exception;
     }
 
     // Log de erro completo (apenas no servidor)

@@ -32,6 +32,7 @@ import { WithdrawalRefundedHandlerQueue } from '../handlers/withdrawal-refunded.
 import {
   AnticipationsUpdates,
   InfractionsUpdates,
+  PaymentReleaseSchedulesByPaymentsIdsUpdates,
   PaymentReleaseSchedulesUpdates,
   PaymentsUpdates,
   QueueResultTaskFailed,
@@ -184,6 +185,20 @@ export class GeneralProcessorQueue implements OnModuleInit {
           where: { id: paymentReleaseScheduleId },
           data: updateData,
         }),
+    );
+
+    await Promise.all(updatePromises);
+  }
+
+  private async handlePaymentReleaseSchedulesByPaymentsIdsUpdates(
+    updates: PaymentReleaseSchedulesByPaymentsIdsUpdates[],
+    tx: Prisma.TransactionClient,
+  ) {
+    const updatePromises = updates.map(({ paymentId, type, updateData }) =>
+      tx.payment_release_schedule.updateMany({
+        where: { payment_id: paymentId, status: 'SCHEDULED', type },
+        data: updateData,
+      }),
     );
 
     await Promise.all(updatePromises);
@@ -441,7 +456,7 @@ export class GeneralProcessorQueue implements OnModuleInit {
       const timeElapsed = endTime.getTime() - startTime.getTime();
       const timeExec = Date.now() - startExec;
 
-      const [] = await Promise.all([
+      await Promise.all([
         this.prisma.queue.updateMany({
           where: { id: { in: queueResultsSuccess.map((taskId) => taskId) } },
           data: {
@@ -558,6 +573,8 @@ export class GeneralProcessorQueue implements OnModuleInit {
           const devolutionsToCreate: DevolutionsToCreateData[] = [];
           const infractionsToCheck: string[] = [];
           const transactionsToCreate: CreateTransactionData[] = [];
+          const schedulesUpdates: PaymentReleaseSchedulesByPaymentsIdsUpdates[] =
+            [];
           const paymentsReleaseScheduleToCreate: CreatePaymentReleaseScheduleData[] =
             [];
 
@@ -636,6 +653,7 @@ export class GeneralProcessorQueue implements OnModuleInit {
                 payment,
                 devolutionsToCreate,
                 infractionsToCheck,
+                schedulesUpdates,
               });
 
               if (payment.company.webhooks.length > 0) {
@@ -704,6 +722,13 @@ export class GeneralProcessorQueue implements OnModuleInit {
                 },
               });
             }
+          }
+
+          if (schedulesUpdates.length > 0) {
+            await this.handlePaymentReleaseSchedulesByPaymentsIdsUpdates(
+              schedulesUpdates,
+              tx,
+            );
           }
 
           if (paymentsReleaseScheduleToCreate.length > 0) {

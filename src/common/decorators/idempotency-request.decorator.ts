@@ -12,7 +12,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { CacheService } from 'src/infrastructure/cache/cache.service';
 
@@ -39,8 +39,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<any>> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const response = context.switchToHttp().getResponse();
+    const request = context.switchToHttp().getRequest<FastifyRequest>();
 
     // Obter opções do metadata
     const options: IdempotencyOptions =
@@ -55,6 +54,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const idempotencyKey = request.headers[headerName.toLowerCase()] as string;
 
     if (!idempotencyKey) {
+      // ❌ NÃO usar throwError - lançar exceção diretamente
       throw new BadRequestException(
         `Header ${headerName} é obrigatório para esta operação`,
       );
@@ -70,13 +70,16 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
       if (cachedData) {
         if (cachedData.status === 'processing') {
-          // Se ainda está processando, retornar erro 409 Conflict
+          // ❌ Lançar exceção diretamente
           throw new ConflictException(
             'Requisição com esta chave de idempotência ainda está sendo processada',
           );
         }
 
-        return of(cachedData.response);
+        // Retornar resposta cacheada
+        if (cachedData.response !== undefined && cachedData.response !== null) {
+          return of(cachedData.response);
+        }
       }
 
       // Marcar como processando
@@ -106,14 +109,20 @@ export class IdempotencyInterceptor implements NestInterceptor {
         catchError(async (error) => {
           // Em caso de erro, remover do cache para permitir retry
           await this.cacheService.del(cacheKey);
-          return throwError(() => error);
+
+          // ❌ Relançar o erro diretamente
+          throw error;
         }),
       );
     } catch (error) {
-      // Se for ConflictException, relançar
-      if (error instanceof ConflictException) {
+      // Se for uma exceção HTTP conhecida, relançar
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
         throw error;
       }
+
       // Para outros erros, logar e continuar sem idempotência
       console.error('Erro no processamento de idempotência:', error);
       return next.handle();

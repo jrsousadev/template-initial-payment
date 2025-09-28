@@ -1,11 +1,11 @@
 import {
   Body,
   Controller,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
   Post,
-  Headers,
 } from '@nestjs/common';
 import { ApiExcludeController, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { provider_name } from '@prisma/client';
@@ -128,12 +128,37 @@ export class WebhookReceiverController {
       select: { id: true, status: true, company_id: true },
     });
 
+    if (!payment) {
+      throw new Error('Payment not found');
+    }
+
     if (payment && payment.status === payloadTask.webhookStatus) {
       return this.webhookReceivedSuccess();
     }
 
-    if (!payment) {
-      throw new Error('Payment not found');
+    if (
+      payment.status === 'ERROR_SYSTEM' ||
+      payment.status === 'FAILED' ||
+      payment.status === 'EXPIRED' ||
+      payment.status === 'REFUSED'
+    ) {
+      return this.webhookReceivedSuccess();
+    }
+
+    if (
+      payment &&
+      payment.status === 'REFUNDED' &&
+      payloadTask.webhookStatus !== 'REFUNDED'
+    ) {
+      return this.webhookReceivedSuccess();
+    }
+
+    if (
+      payment &&
+      payment.status === 'CHARGEDBACK' &&
+      payloadTask.webhookStatus !== 'CHARGEDBACK'
+    ) {
+      return this.webhookReceivedSuccess();
     }
 
     const id = UniqueIDGenerator.generate();

@@ -1,4 +1,5 @@
 import {
+  $Enums,
   company,
   company_tax_config,
   infraction_analysis_result,
@@ -106,6 +107,12 @@ export interface AnticipationsUpdates {
 
 export interface PaymentReleaseSchedulesUpdates {
   paymentReleaseScheduleId: string;
+  updateData: Prisma.payment_release_scheduleUpdateArgs['data'];
+}
+
+export interface PaymentReleaseSchedulesByPaymentsIdsUpdates {
+  paymentId: string;
+  type: $Enums.release_schedule_type;
   updateData: Prisma.payment_release_scheduleUpdateArgs['data'];
 }
 

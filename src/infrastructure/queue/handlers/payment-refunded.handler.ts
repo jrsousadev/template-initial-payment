@@ -8,6 +8,7 @@ import { DevolutionsToCreateData } from 'src/modules/devolution/interfaces/devol
 import { CreateTransactionData } from 'src/modules/transaction/interfaces/transaction.interfaces';
 import {
   IPaymentWithCompanyAndProvider,
+  PaymentReleaseSchedulesByPaymentsIdsUpdates,
   PaymentsUpdates,
   QueueTasksPaymentsProcessor,
 } from '../interfaces/queue.interfaces';
@@ -22,6 +23,7 @@ export class PaymentRefundedHandlerQueue {
     queueResultsSuccess,
     devolutionsToCreate,
     infractionsToCheck,
+    schedulesUpdates,
   }: {
     payment: IPaymentWithCompanyAndProvider;
     paymentsUpdates: PaymentsUpdates[];
@@ -29,6 +31,7 @@ export class PaymentRefundedHandlerQueue {
     task: QueueTasksPaymentsProcessor;
     queueResultsSuccess: string[];
     devolutionsToCreate: DevolutionsToCreateData[];
+    schedulesUpdates: PaymentReleaseSchedulesByPaymentsIdsUpdates[];
     infractionsToCheck: string[];
   }) {
     const now = new Date();
@@ -127,6 +130,12 @@ export class PaymentRefundedHandlerQueue {
       const reserve = payment.amount_reserve;
       const fee = refundPenalty + amountDifference;
       const amountNet = amount - reserve + fee;
+
+      schedulesUpdates.push({
+        paymentId: payment.id,
+        type: 'RESERVE_RELEASE',
+        updateData: { status: 'CANCELLED', cancelled_at: now },
+      });
 
       transactionsToCreate.push(
         {
@@ -248,6 +257,12 @@ export class PaymentRefundedHandlerQueue {
           },
         );
       }
+
+      schedulesUpdates.push({
+        paymentId: payment.id,
+        type: 'PENDING_TO_AVAILABLE',
+        updateData: { status: 'CANCELLED', cancelled_at: now },
+      });
     }
 
     // Reserva não foi liberada e saldo também não;
@@ -366,6 +381,19 @@ export class PaymentRefundedHandlerQueue {
           },
         );
       }
+
+      schedulesUpdates.push(
+        {
+          paymentId: payment.id,
+          type: 'PENDING_TO_AVAILABLE',
+          updateData: { status: 'CANCELLED', cancelled_at: now },
+        },
+        {
+          paymentId: payment.id,
+          type: 'RESERVE_RELEASE',
+          updateData: { status: 'CANCELLED', cancelled_at: now },
+        },
+      );
     }
 
     infractionsToCheck.push(payment.id);
