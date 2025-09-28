@@ -1,11 +1,10 @@
 import {
   payment_method,
   payment_status,
-  provider_name,
   transaction_account_type,
   transaction_currency,
   transaction_movement_type,
-  transaction_operation_type,
+  transaction_operation_type
 } from '@prisma/client';
 
 export interface CreateTransactionData {
@@ -37,7 +36,6 @@ export interface CreateTransactionPaymentSchedulesData {
   webhookStatus: payment_status;
   isVisible?: boolean;
   companyId: string;
-  providerName: provider_name;
   method: payment_method;
   installments: number | null;
 }

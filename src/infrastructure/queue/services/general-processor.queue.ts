@@ -1462,7 +1462,6 @@ export class GeneralProcessorQueue implements OnModuleInit {
               companyId: schedule.company_id,
               currency: schedule.currency,
               method: schedule.method,
-              providerName: schedule.provider_name as provider_name,
               webhookStatus: 'APPROVED',
               description:
                 this.paymentReleaseScheduleService.getDescription(schedule),
@@ -1480,7 +1479,6 @@ export class GeneralProcessorQueue implements OnModuleInit {
               companyId: schedule.company_id,
               currency: schedule.currency,
               method: schedule.method,
-              providerName: schedule.provider_name as provider_name,
               webhookStatus: 'APPROVED',
               description:
                 this.paymentReleaseScheduleService.getDescription(schedule),

@@ -58,7 +58,7 @@ export class CompanyResponseDto {
   created_at: string;
 }
 
-export class DocumentUploadResponseDto {
+export class CompanyDocumentUploadResponseDto {
   @ApiProperty({ type: 'string', example: 'Documents uploaded successfully' })
   message: string;
 

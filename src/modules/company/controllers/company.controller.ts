@@ -1,56 +1,54 @@
 // company.controller.ts
 import {
-  Controller,
-  Post,
-  Get,
-  Put,
+  BadRequestException,
   Body,
-  Param,
+  Controller,
+  Get,
   HttpCode,
   HttpStatus,
-  Req,
-  BadRequestException,
+  Param,
+  Post,
+  Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
-  ApiResponse,
   ApiParam,
   ApiQuery,
-  ApiConsumes,
-  ApiBody,
+  ApiResponse,
   ApiSecurity,
+  ApiTags,
 } from '@nestjs/swagger';
+import { transaction_account_type, transaction_currency } from '@prisma/client';
 import { FastifyRequest } from 'fastify';
-import { CompanyService } from '../services/company.service';
+import { CommonAuthErrors } from 'src/common/decorators/common-errors.decorator';
+import { RequirePermissions } from 'src/common/decorators/permissions.decorator';
+import { ApiKeyGuard } from 'src/common/guards/api-key.guard';
+import { Permission } from 'src/common/permissions/permissions.enum';
+import { CompanyApiKey } from 'src/modules/payment/interfaces/transaction.interfaces';
 import {
   CreateCompanyDto,
-  UploadCompanyDocumentsDto,
-  UpdateCompanyTaxConfigDto,
   UpdateCompanyConfigDto,
+  UpdateCompanyTaxConfigDto,
+  UploadCompanyDocumentsDto,
 } from '../dto/company.dto';
-import { transaction_account_type, transaction_currency } from '@prisma/client';
-import { ApiKeyGuard } from 'src/common/guards/api-key.guard';
-import { CompanyApiKey } from 'src/modules/payment/interfaces/transaction.interfaces';
-import { RequirePermissions } from 'src/common/decorators/permissions.decorator';
-import { Permission } from 'src/common/permissions/permissions.enum';
-import { CommonAuthErrors } from 'src/common/decorators/common-errors.decorator';
 import {
-  CompanyResponseDto,
-  DocumentUploadResponseDto,
-  TaxConfigResponseDto,
-  TaxConfigsResponseDto,
-  TaxConfigUpdateResponseDto,
-  TaxConfigCreateResponseDto,
+  CompanyBalancesResponseDto,
+  CompanyConfigCreateResponseDto,
   CompanyConfigResponseDto,
   CompanyConfigUpdateResponseDto,
-  CompanyConfigCreateResponseDto,
+  CompanyDocumentUploadResponseDto,
+  CompanyResponseDto,
   CompanyStatusResponseDto,
-  CompanyBalancesResponseDto,
+  TaxConfigCreateResponseDto,
+  TaxConfigUpdateResponseDto,
   WalletsResponseDto,
 } from '../interfaces/company.interfaces';
+import { CompanyService } from '../services/company.service';
 
 interface FastifyRequestWithMultipart extends FastifyRequest {
   isMultipart(): boolean;
@@ -209,7 +207,7 @@ export class CompanyController {
   @ApiResponse({
     status: 201,
     description: 'Documents uploaded successfully',
-    type: DocumentUploadResponseDto,
+    type: CompanyDocumentUploadResponseDto,
   })
   @CommonAuthErrors({
     includeBadRequest: true,
