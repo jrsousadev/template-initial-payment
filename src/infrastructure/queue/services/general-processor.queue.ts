@@ -1301,16 +1301,15 @@ export class GeneralProcessorQueue implements OnModuleInit {
                   'Insufficient amount pending to anticipate for the requested amount',
                 taskId: task.queueTaskId,
               });
+              anticipationsUpdates.push({
+                anticipationId: anticipation.id,
+                updateData: {
+                  status: 'REJECTED',
+                  failed_at: now,
+                },
+              });
               continue;
             }
-
-            anticipationsUpdates.push({
-              anticipationId: anticipation.id,
-              updateData: {
-                status: 'PROCESSING',
-                processed_at: now,
-              },
-            });
 
             await this.prisma.payment_release_schedule.updateMany({
               where: {
@@ -1358,6 +1357,15 @@ export class GeneralProcessorQueue implements OnModuleInit {
                 },
               );
             }
+
+            anticipationsUpdates.push({
+              anticipationId: anticipation.id,
+              updateData: {
+                status: 'APPROVED',
+                processed_at: now,
+                approved_at: now,
+              },
+            });
 
             queueResultsSuccess.push(task.queueTaskId);
           }
@@ -1547,6 +1555,16 @@ export class GeneralProcessorQueue implements OnModuleInit {
 
             queueResultsSuccess.push(task.queueTaskId);
           }
+
+          console.log('Payment release schedules updates:', schedulesUpdates);
+          console.log(
+            'Payment release schedules transactions:',
+            transactionsSchedulesToCreate,
+          );
+          console.log(
+            'Payment release schedules payments updates:',
+            paymentsUpdates,
+          );
 
           if (schedulesUpdates.length > 0) {
             await this.handlePaymentReleaseSchedulesUpdates(
