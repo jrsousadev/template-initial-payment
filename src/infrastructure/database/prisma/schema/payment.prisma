@@ -53,6 +53,9 @@ model payment_item {
     payment_id String
     payment    payment @relation(fields: [payment_id], references: [id])
 
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+
     @@index([payment_id])
 }
 
@@ -98,10 +101,14 @@ model payment {
     // snapshot - items data
     items_json Json?
 
-    // pix 
+    // snapshot - splits data
+    splits_json Json?
+    have_splits Boolean @default(false)
+
+    // pix
     pix_code String?
 
-    // billet 
+    // billet
     billet_url     String?
     billet_barcode String?
 
@@ -149,23 +156,28 @@ model payment {
     completed_reserve_available_date DateTime?
 
     // control amount installments
-    installments                   Int?      @default(0)
-    installments_qty_received      Int?      @default(0)
-    installments_amount_received   Int?      @default(0)
-    installments_amount_pending    Int?      @default(0)
-    amount_per_installments        Float?    @default(0)
+    installments                 Int?   @default(0)
+    installments_qty_received    Int?   @default(0)
+    installments_amount_received Int?   @default(0)
+    installments_amount_pending  Int?   @default(0)
+    amount_per_installments      Float? @default(0)
 
     // schemas
     company_id         String
     company            company          @relation(fields: [company_id], references: [id])
     company_api_key_id String
-    companyApiKey      company_api_keys @relation(fields: [company_api_key_id], references: [id])
+    company_api_key    company_api_keys @relation(fields: [company_api_key_id], references: [id])
     provider_id        String
     provider           provider         @relation(fields: [provider_id], references: [id])
     customer_id        String
     customer           customer         @relation(fields: [customer_id], references: [id])
 
-    queues queue[]
+    queues                     queue[]
+    webhooks_log               webhook_log[]
+    infractions                infraction[]
+    devolutions                devolution?
+    payment_items              payment_item[]
+    payment_releases_schedules payment_release_schedule[]
 
     // dates
     approved_at               DateTime?
@@ -182,12 +194,6 @@ model payment {
 
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
-
-    webhooks_log               webhook_log[]
-    infractions                infraction[]
-    devolution                 devolution?
-    payment_items              payment_item[]
-    payment_releases_schedules payment_release_schedule[]
 
     @@unique([provider_payment_id, provider_name], name: "payment_provider_payment_id_provider_name_unique")
     @@index([end_to_end_id])
