@@ -1,29 +1,29 @@
 // payments/dto/create-payment-request.dto.ts
 
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { $Enums } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
+  IsArray,
+  IsDateString,
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsString,
-  IsEnum,
-  IsArray,
-  ValidateNested,
   IsPositive,
-  Min,
-  IsDateString,
-  MaxLength,
+  IsString,
   IsUUID,
   IsUrl,
+  MaxLength,
+  Min,
+  ValidateNested,
+  ValidationArguments,
+  ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-  ValidationArguments,
   registerDecorator,
-  ValidationOptions,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { $Enums } from '@prisma/client';
 
 // ==================== ENUMS ====================
 
@@ -92,7 +92,7 @@ export class PaymentMethodValidator implements ValidatorConstraintInterface {
 
 // Decorator functions
 export function IsMinimumDueDate(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -104,7 +104,7 @@ export function IsMinimumDueDate(validationOptions?: ValidationOptions) {
 }
 
 export function IsValidPaymentMethod(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -289,10 +289,10 @@ export class ShippingAddressDto {
 export class SplitRuleDto {
   @ApiProperty({
     example: 'a300039d-174c-4609-9fe1-be6928f27a38',
-    description: 'Recipient token',
+    description: 'Recipient identifier (company_id)',
   })
   @IsUUID()
-  token: string;
+  company_id: string;
 
   @ApiProperty({
     example: 70,

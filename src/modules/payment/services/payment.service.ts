@@ -1,23 +1,22 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { PaymentValidatorService } from './payment-validator.service';
-import { PaymentRepository } from '../repositories/payment.repository';
-import { ERROR_MESSAGES } from '../constants/payment.constants';
-import { UniqueIDGenerator } from 'src/common/utils/generate-unique-id.util';
-import { PaymentFeeCalculatorService } from './payment-fee-calculator.service';
+import { WebhookConstants } from 'src/common/constants/webhook.constants';
 import { CreditCardUtils } from 'src/common/utils/credit-card.util';
-import { PaymentProcessorService } from './payment-processor.service';
-import { CreatePaymentRequestDto } from '../dto/payment.dto';
-import { Payment } from '../entities/payment.entity';
+import { UniqueIDGenerator } from 'src/common/utils/unique-id-generator';
 import { GatewayProviderFactoryService } from 'src/infrastructure/gateways/gateway-provider-factory.service';
+import { Company } from 'src/modules/company/entities/company.entity';
+import { CustomerService } from 'src/modules/customer/services/customer.service';
+import { ERROR_MESSAGES } from '../constants/payment.constants';
+import { CreatePaymentRequestDto } from '../dto/payment.dto';
+import { Currency } from '../entities/currency.entity';
+import { Payment } from '../entities/payment.entity';
 import {
   CompanyApiKey,
   IPaymentResponse,
 } from '../interfaces/transaction.interfaces';
-import { Company } from 'src/modules/company/entities/company.entity';
-import { Currency } from '../entities/currency.entity';
-import { WebhookConstants } from 'src/common/constants/webhook.constants';
-import { CustomerService } from 'src/modules/customer/services/customer.service';
-import { PaymentItemService } from 'src/modules/payment-item/services/payment-item.service';
+import { PaymentRepository } from '../repositories/payment.repository';
+import { PaymentFeeCalculatorService } from './payment-fee-calculator.service';
+import { PaymentProcessorService } from './payment-processor.service';
+import { PaymentValidatorService } from './payment-validator.service';
 
 @Injectable()
 export class PaymentService {
@@ -30,7 +29,6 @@ export class PaymentService {
     private readonly processor: PaymentProcessorService,
     private readonly providerFactory: GatewayProviderFactoryService,
     private readonly customerService: CustomerService,
-    private readonly paymentItemService: PaymentItemService,
   ) {}
 
   // private async validateCreateSystemStatus() {
@@ -111,6 +109,8 @@ export class PaymentService {
         }
       }
 
+      const haveSplits = false;
+
       const currencyEntity = new Currency(dto.currency);
       const companyEntity = new Company(company);
       const companyTaxConfig = companyEntity.getTaxConfigByCurrency(
@@ -155,7 +155,6 @@ export class PaymentService {
         amount: dto.amount,
         rates,
       });
-
       this.validator.validatePaymentReserveDays(
         fees.amountReserve,
         companyTaxConfig[`available_days_reserve_${dto.method.toLowerCase()}`],
@@ -213,6 +212,13 @@ export class PaymentService {
         },
       );
 
+      const splitsJson = this.processor.createSplitsJsonForPayment(
+        configAffiliates,
+        configPartners,
+        fees.amountCompany,
+        haveSplits,
+      );
+
       const paymentData = this.processor.buildPaymentData({
         company: {
           id: company.id,
@@ -238,6 +244,8 @@ export class PaymentService {
         providerResponse: providerInstanceResponse.providerResponse,
         rates,
         currency: dto.currency,
+        haveSplits,
+        splitsJson: splitsJson.splits,
       });
 
       const payment = await this.repository.create({

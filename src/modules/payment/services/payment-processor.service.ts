@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import {
   $Enums,
   customer_document_type,
@@ -12,10 +11,15 @@ import {
   transaction_currency,
 } from '@prisma/client';
 import { DocumentValidator } from 'src/common/utils/document.util';
-import { PaymentFees, TaxRates } from '../interfaces/transaction.interfaces';
-import { CreatePaymentRequestDto } from '../dto/payment.dto';
-import { UniqueIDGenerator } from 'src/common/utils/generate-unique-id.util';
+import { UniqueIDGenerator } from 'src/common/utils/unique-id-generator';
+import { PrismaService } from 'src/infrastructure/database/prisma.service';
 import { PaymentWebhookData } from 'src/infrastructure/gateways/base-payment.provider';
+import { CreatePaymentRequestDto } from '../dto/payment.dto';
+import {
+  PaymentFees,
+  SplitsJson,
+  TaxRates,
+} from '../interfaces/transaction.interfaces';
 
 @Injectable()
 export class PaymentProcessorService {
@@ -36,6 +40,8 @@ export class PaymentProcessorService {
     currency,
     customerId,
     providerPaymentId,
+    haveSplits,
+    splitsJson,
   }: {
     paymentId: string;
     dto: CreatePaymentRequestDto;
@@ -48,6 +54,7 @@ export class PaymentProcessorService {
       availableReservePixInDays: number;
       availableReserveBilletInDays: number;
     };
+    haveSplits: boolean;
     customerId: string;
     provider: provider;
     fees: PaymentFees;
@@ -58,6 +65,7 @@ export class PaymentProcessorService {
     providerResponse: any;
     company_api_key_id: string;
     currency: transaction_currency;
+    splitsJson: SplitsJson[];
   }) {
     let availableStatus: payment_available_status = 'COMPLETED';
     let completedAvailableDate: Date | null = new Date();
@@ -152,6 +160,8 @@ export class PaymentProcessorService {
 
       items_json: dto.items as any[],
       payment_items: dto.items as any[],
+      have_splits: haveSplits || false,
+      splits_json: splitsJson || [],
 
       amount: dto.amount,
       amount_fee: fees.totalFees,
@@ -270,6 +280,53 @@ export class PaymentProcessorService {
 
   formatEmail(email: string): string {
     return email.trim().toLowerCase();
+  }
+
+  createSplitsJsonForPayment(
+    splitsPayload: SplitsJson[],
+    amountNet: number,
+    haveSplits: boolean,
+  ): { splits: SplitsJson[] } {
+    if (!haveSplits) {
+      return { splits: [] };
+    }
+
+    const splits: SplitsJson[] = [];
+    let amountSplitDistribution = 0;
+
+    if (splitsPayload.length > 0) {
+      for (const split of splitsPayload) {
+        if (split.split_type === 'FIXED') {
+          const amount = split.split_type_value;
+          amountSplitDistribution += amount;
+
+          splits.push({
+            commission_amount: amount,
+            split_type_value: split.split_type_value,
+            company_id: split.company_id,
+            split_type: 'FIXED',
+          });
+          continue;
+        }
+
+        if (split.split_type === 'PERCENTAGE') {
+          const amount = Math.floor((amountNet * split.split_type_value) / 100);
+          amountSplitDistribution += amount;
+
+          splits.push({
+            commission_amount: amount,
+            split_type_value: split.split_type_value,
+            company_id: split.company_id,
+            split_type: 'PERCENTAGE',
+          });
+          continue;
+        }
+      }
+    }
+
+    return {
+      splits,
+    };
   }
 
   async createQueueTaskForApprovedPayment(

@@ -1,13 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
-  transaction_currency,
   payment_method,
   payment_status,
   provider,
+  transaction_currency,
 } from '@prisma/client';
 import { DocumentValidator } from 'src/common/utils/document.util';
 import { PAYMENT_CONSTANTS } from '../constants/payment.constants';
-import { ItemDto } from '../dto/payment.dto';
+import { ItemDto, SplitDto } from '../dto/payment.dto';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -16,6 +16,49 @@ export interface ValidationResult {
 
 @Injectable()
 export class PaymentValidatorService {
+  validateSplit(split: SplitDto, amountNet: number, companyId: string): void {
+    if (split.type === 'FIXED') {
+      for (const rule of split.rules) {
+        if (rule.value <= 0) {
+          throw new Error('Invalid fixed split value');
+        }
+
+        if (rule.value > amountNet) {
+          throw new Error('Fixed split value exceeds net amount');
+        }
+
+        if (rule.company_id === companyId) {
+          throw new Error('Cannot split to the same company');
+        }
+
+        if (!rule.company_id || typeof rule.company_id !== 'string') {
+          throw new Error('Invalid company ID in split rule');
+        }
+      }
+    }
+
+    if (split.type === 'PERCENTAGE') {
+      let totalPercentage = 0;
+      for (const rule of split.rules) {
+        if (rule.value <= 0 || rule.value > 100) {
+          throw new Error('Invalid percentage split value');
+        }
+        totalPercentage += rule.value;
+
+        if (rule.company_id === companyId) {
+          throw new Error('Cannot split to the same company');
+        }
+
+        if (!rule.company_id || typeof rule.company_id !== 'string') {
+          throw new Error('Invalid company ID in split rule');
+        }
+      }
+      if (totalPercentage !== 100) {
+        throw new Error('Total percentage split must be 100');
+      }
+    }
+  }
+
   validateMethod(paymentMethod: string): payment_method {
     const upperMethod = paymentMethod.toUpperCase();
     if (upperMethod in payment_method) {

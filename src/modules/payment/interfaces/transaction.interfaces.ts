@@ -1,3 +1,4 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   $Enums,
   company,
@@ -8,7 +9,6 @@ import {
   provider_name,
   provider_tax_config,
 } from '@prisma/client';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ItemDto } from '../dto/payment.dto';
 
 export interface TaxRates {
@@ -27,7 +27,23 @@ export interface PaymentFees {
   amountProvider: number;
   amountOrganization: number;
   amountReserve: number;
+  amountDiscount: number;
   totalFees: number;
+}
+
+export interface SplitsJson {
+  company_id: string;
+  split_type: 'FIXED' | 'PERCENTAGE';
+  split_type_value: number;
+  commission_amount: number;
+}
+
+export interface ItemsJson {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_amount: number;
+  sku?: string | null;
 }
 
 export interface CreatePaymentData {
@@ -51,6 +67,11 @@ export interface CreatePaymentData {
   customer_phone: string;
   provider_name: provider_name;
   method: $Enums.payment_method;
+
+  have_splits: boolean;
+
+  splits_json?: SplitsJson[];
+  items_json?: ItemsJson[];
 
   address_zipcode?: string;
   address_city?: string;
