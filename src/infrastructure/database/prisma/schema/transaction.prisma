@@ -5,7 +5,8 @@ enum transaction_operation_type {
     REFUND_OUT
     MANUAL
     SYSTEM
-    SPLIT
+    SPLIT_RECEIVED
+    SPLIT_SENT
     RESERVE
     ANTICIPATION
     CONVERT_CURRENCY
@@ -31,13 +32,15 @@ enum transaction_currency {
 model transaction {
     id String @id @default(uuid())
 
-    source_id   String?
-    description String?
-    visible     Boolean @default(true)
+    transaction_main_id String?
+    source_id           String?
+    description         String?
+    visible             Boolean @default(true)
 
-    amount     Int
-    amount_fee Int
-    amount_net Int
+    amount                    Int
+    amount_fee                Int
+    amount_net                Int
+    amount_split_distribution Int @default(0)
 
     idempotency_key String @unique
 
